@@ -358,11 +358,9 @@ likelihood <- function(pValues){
   logLike <- mclapply(sets, function(jx) {
     likelihoods[[jx]](pValues)  
   }, mc.cores = nCores)  
-  llP <- sum(unlist(logLike ))
+  llP <- sum(unlist(logLike))
   return(llP)
 }
-
-
 
 # added likelihood function for flux tower sites
 
@@ -379,6 +377,7 @@ likelihood5Flux <- function(pValues,cal=T){
   
   out_GPP<-c()
   out_ET<-c()
+  out_GPPyr<-c()
   out_H<-c()
   out_D<-c()
   out_B<-c()
@@ -399,6 +398,7 @@ likelihood5Flux <- function(pValues,cal=T){
     ### CROBAS
     output<-PREBASout$multiOut[i,,,,]
     
+    out_GPPyr<-c(out_GPPyr,output[,10,1,1])
     out_H<-c(out_H,output[dim.H])
     out_D<-c(out_D,output[dim.D])
     out_B<-c(out_B,output[dim.B])
@@ -430,13 +430,14 @@ likelihood5Flux <- function(pValues,cal=T){
   if(cal==T){
     return(loglikelihoodFlux)  
   }else{
-    return(list(simGPP=out_GPP[c(GPPdata_s5$outData[,2])], 
+    return(list(simGPP_day=out_GPP[c(GPPdata_s5$outData[,2])], 
                 simET=out_ET[c(ETdata_s5$outData[,2])],
+                simGPPyr=out_GPPyr,
                 simH=out_H, 
                 simD=out_D, 
                 simB=out_B, 
                 simHc=out_Hc,
-                obsGPP=GPPdata_s5$obs[c(GPPdata_s5$outData[,2])], 
+                obsGPP_day=GPPdata_s5$obs[c(GPPdata_s5$outData[,2])], 
                 obsET=ETdata_s5$obs[c(ETdata_s5$outData[,2])], 
                 obsH=Hdata_s5$obs, 
                 obsD=Ddata_s5$obs, 

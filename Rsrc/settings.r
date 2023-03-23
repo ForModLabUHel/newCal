@@ -3,8 +3,8 @@ if(!exists("vLocal")) vLocal <- FALSE
 
 if(!exists("fX")) fX <- 2.38  ###parameter of DEzs algorithm
 if(!exists("calAlg")) calAlg <- "DEzs"  ###MC algorithm
-if(!exists("nworkers")) nworkers <- 5  ###number of corse
-  
+if(!exists("nworkers")) nworkers <- 20  ###number of cores
+
 ###siteIDs used in the different calibration sets
 set1 <- 1:300
 set2 <- 301:600
@@ -28,6 +28,10 @@ parnam <- as.character(param_all[,1])
 npar <- length(parmod)
 
 ###error parameters
+a_GPPind <- which(parnam=="GPP_NT_a")
+b_GPPind <- which(parnam=="GPP_NT_b")
+a_ETind <- which(parnam=="ET_a")
+b_ETind <- which(parnam=="ET_b")
 a_Hind <- which(parnam=="a_H")
 b_Hind <- which(parnam=="b_H")
 a_Bind <- which(parnam=="a_B")
@@ -47,7 +51,7 @@ b_Acind <- which(parnam=="b_Ac")
 a_WfDataind <- which(parnam=="a_WfData")
 b_WfDataind <- which(parnam=="b_WfData")
 
-nCores <- ifelse(vLocal,1,4)
+nCores <- ifelse(vLocal,1,nworkers)
 
 sets <- 1:5
 likelihoods <- list()
