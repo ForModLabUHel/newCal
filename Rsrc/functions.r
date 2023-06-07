@@ -90,7 +90,12 @@ likelihood1 <- function(pValues,cal=T){
   init_set1$pCROBAS[parSel_CROB,1] <- pValues[(nparPREL+1):(nparPREL+nparCROB)]
   init_set1$pCROBAS[parSel_CROB,2] <- pValues[(nparPREL+nparCROB + 1):(nparPREL+(nparCROB*2))]
   init_set1$pCROBAS[parSel_CROB,3] <- pValues[((nparPREL+(nparCROB*2)) + 1):(nparPREL+(nparCROB*3))]
-  
+
+  #### update P0 using new preles parameters
+  init_set1 <- p0fromInitPreb(init_set1)
+  ###update Hc
+  init_set1$multiInitVar <- updateHcInitPreb(init_set1)
+
   output <- multiPrebas(init_set1)$multiOut
   # if (output==-999){
   #   loglikelihood= -Inf
@@ -143,7 +148,12 @@ likelihood2 <- function(pValues,cal=T){
   init_set2$pCROBAS[parSel_CROB,1] <- pValues[(nparPREL+1):(nparPREL+nparCROB)]
   init_set2$pCROBAS[parSel_CROB,2] <- pValues[(nparPREL+nparCROB + 1):(nparPREL+(nparCROB*2))]
   init_set2$pCROBAS[parSel_CROB,3] <- pValues[((nparPREL+(nparCROB*2)) + 1):(nparPREL+(nparCROB*3))]
-  
+
+  #### update P0 using new preles parameters
+  init_set2 <- p0fromInitPreb(init_set2)
+  ###update Hc
+  init_set2$multiInitVar <- updateHcInitPreb(init_set2)
+
   output <- multiPrebas(init_set2)$multiOut
   # if (output==-999){
   #   loglikelihood= -Inf
@@ -197,7 +207,12 @@ likelihood3 <- function(pValues,cal=T){
   init_set3$pCROBAS[parSel_CROB,1] <- pValues[(nparPREL+1):(nparPREL+nparCROB)]
   init_set3$pCROBAS[parSel_CROB,2] <- pValues[(nparPREL+nparCROB + 1):(nparPREL+(nparCROB*2))]
   init_set3$pCROBAS[parSel_CROB,3] <- pValues[((nparPREL+(nparCROB*2)) + 1):(nparPREL+(nparCROB*3))]
-  
+ 
+  #### update P0 using new preles parameters
+  init_set3 <- p0fromInitPreb(init_set3)
+  ###update Hc
+  init_set3$multiInitVar <- updateHcInitPreb(init_set3)
+
   output <- multiPrebas(init_set3)$multiOut
   # if (output==-999){
   #   loglikelihood= -Inf
@@ -252,6 +267,11 @@ likelihood4 <- function(pValues,cal=T){
   init_set4$pCROBAS[parSel_CROB,2] <- pValues[(nparPREL+nparCROB + 1):(nparPREL+(nparCROB*2))]
   init_set4$pCROBAS[parSel_CROB,3] <- pValues[((nparPREL+(nparCROB*2)) + 1):(nparPREL+(nparCROB*3))]
   
+  #### update P0 using new preles parameters
+  init_set4 <- p0fromInitPreb(init_set4)
+  ###update Hc
+  init_set4$multiInitVar <- updateHcInitPreb(init_set4)
+
   output <- multiPrebas(init_set4)$multiOut
   
   outdata_B2 <- Bdata_s4$outData; outdata_B2[,5] <- 2
@@ -372,6 +392,11 @@ likelihood5Flux <- function(pValues,cal=T){
   init_set5Flux$pCROBAS[parSel_CROB,2] <- pValues[(nparPREL+nparCROB + 1):(nparPREL+(nparCROB*2))]
   init_set5Flux$pCROBAS[parSel_CROB,3] <- pValues[((nparPREL+(nparCROB*2)) + 1):(nparPREL+(nparCROB*3))]
   
+  #### update P0 using new preles parameters
+  init_set5Flux <- p0fromInitPreb(init_set5Flux)
+  ###update Hc
+  init_set5Flux$multiInitVar <- updateHcInitPreb(init_set5Flux)
+
   PREBASout <- multiPrebas(init_set5Flux)
   
   out_GPP<-c()
@@ -461,3 +486,56 @@ extractSite <- function(dataX,modOut){
   sites <- modOut$output[stInd]
   return(sites)
 }
+
+
+#function to recalculate P0 when preles parameters have been updated
+#initPrebas is the model initialization object obtained by InitMultiSite function
+p0fromInitPreb <- function(initPrebas,smoothYear=5){
+  multiP0 <- initPrebas$P0y
+  nClimID <- initPrebas$nClimID
+  climIDs <- initPrebas$siteInfo[,2]
+  for(climID in 1:nClimID){
+    nYearsX <- max(initPrebas$nYears[which(climIDs==climID)])
+    PAR= as.vector(aperm(initPrebas$weather[climID,1:nYearsX,,1],2:1))
+    TAir= as.vector(aperm(initPrebas$weather[climID,1:nYearsX,,2],2:1))
+    VPD= as.vector(aperm(initPrebas$weather[climID,1:nYearsX,,3],2:1))
+    Precip= as.vector(aperm(initPrebas$weather[climID,1:nYearsX,,4],2:1))
+    CO2= as.vector(aperm(initPrebas$weather[climID,1:nYearsX,,5],2:1))
+    P0 <- PRELES(DOY=rep(1:365,nYearsX),PAR=PAR,
+                 TAir=TAir,VPD=VPD,
+                 Precip=Precip,CO2=CO2,
+                 fAPAR=rep(1,(365*nYearsX)),LOGFLAG=0,p=initPrebas$pPRELES)$GPP
+    P0 <- matrix(P0,365,nYearsX)
+    initPrebas$P0y[climID,(1:nYearsX),1] <- colSums(P0)
+  }
+  if(initPrebas$smoothP0==1 & initPrebas$maxYears > 1){
+    initPrebas$P0y[,1,2] <- initPrebas$P0y[,1,1]
+    for(i in 2:initPrebas$maxYears) initPrebas$P0y[,i,2] <- initPrebas$P0y[,(i-1),2] + (initPrebas$P0y[,i,1]-initPrebas$P0y[,(i-1),2])/min(i,smoothYear)
+  } else{
+    initPrebas$P0y[,,2] <- initPrebas$P0y[,,1]
+  }
+  initPrebas$P0y[which(is.na(multiP0))] <- 0.
+  
+  return(initPrebas)
+}
+
+#function to recalculate Hc based on pipe model when parameters have been updated
+#initPrebas is the model initialization object obtained by InitMultiSite function
+updateHcInitPreb <- function(initPrebas,HcModV=1){
+  initPrebas$HcModV=HcModV
+  multiInitVar <- initPrebas$multiInitVar
+  pHcMod <- pHcM
+  pCROBAS <- initPrebas$pCROBAS
+  HcModV <- initPrebas$HcModV
+  maxNlayers <- initPrebas$maxNlayers
+  nSites <- initPrebas$nSites
+  multiInitVar[,6,] <- NA
+  # update Hc
+  if(maxNlayers==1){
+    multiInitVar <- array(aaply(multiInitVar,1,findHcNAs,pHcMod,pCROBAS,HcModV),dim=c(nSites,7,1))
+  }else{
+    multiInitVar <- aaply(multiInitVar,1,findHcNAs,pHcMod,pCROBAS,HcModV)
+  }
+  multiInitVar[which(is.na(multiInitVar))] <- 0
+  return(multiInitVar)
+}  
